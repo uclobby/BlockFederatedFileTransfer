@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<lc:applicationManifest
+	lc:appUri="http://uclobby.com/BlockFederatedFileTransfer"
+	xmlns:lc="http://schemas.microsoft.com/lcs/2006/05">
+    <lc:requestFilter methodNames="INVITE" strictRoute="true"/>
+    <lc:responseFilter reasonCodes="NONE"/>
+    <lc:scriptOnly/>
+	<lc:file name="AllowedDomains" 
+	path=".\AllowedDomains.txt"
+	delimitedBy="comma"
+	keyColumnName="SIPDomain"
+	static="false">
+        <lc:column name="SIPDomain" />
+        <lc:column name="Action" />
+    </lc:file>
+	<lc:splScript><![CDATA[
+		/*
+		Module Name: 	BlockFederatedFileTransfer.am   
+		Version:		1.0
+		*/
+
+		foreach(header in GetHeaderValues(StandardHeader.ContentType)) {
+			if (IndexOfString(header, "multipart/", true) == 0) {
+				i = 0;
+				while(i < MultiPartItem.Count && BindMultiPartBodyItem(i)) {             
+					if(ContainsString(MultiPartItem.ContentType, "application/ms-filetransfer+xml", true)) {
+					
+						fromSIPDomain = GetHostName(GetUri(sipRequest.From));
+						toSIPDomain = GetHostName(GetUri(sipRequest.To));
+						fromSIPAction = AllowedDomains[fromSIPDomain].Action;
+						toSIPAction = AllowedDomains[toSIPDomain].Action;
+						
+						if ((QueryDomain(Domain.Internal, fromSIPDomain) || (fromSIPAction == "both") || (fromSIPAction == "sendonly")) && 
+						(QueryDomain(Domain.Internal, toSIPDomain) || toSIPAction == "both") || (toSIPAction == "receiveonly"))) {
+							Log ("Event", false, "File Transfer Allowed by BlockFederatedFileTransfer \n",  Concatenate("From: ", fromSIPDomain, " - ", sipRequest.From ),"\n", Concatenate("To: ", toSIPDomain, " - ", sipRequest.To),"\n");
+						} else{
+							Log ("Event", false, "File Transfer Blocked by BlockFederatedFileTransfer \n",  Concatenate("From: ", fromSIPDomain, " - ", sipRequest.From ),"\n", Concatenate("To: ", toSIPDomain, " - ", sipRequest.To),"\n");
+							Respond(606, "Not Acceptable");
+						}
+						break;
+					}
+					i=i+1;
+				}
+				break;
+			}
+		}
+       return;
+	]]></lc:splScript>
+</lc:applicationManifest>
