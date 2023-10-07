@@ -15,3 +15,8 @@ This MSPL Script allowed to block file transfers to specific domains. It's based
 Example:
 <br/>SIPDomain,Action
 <br/>contoso.com,block
+
+<b>Release Notes</b>
+<ul>
+    <li>Version 1.0: 2017/02/02 - Initial release.</li>
+</ul>
